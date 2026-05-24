@@ -51,73 +51,82 @@
 
   <script>
     async function loadPopularFlights() {
-    // نداء مباشر لملف الـ PHP على نفس السيرفر لمنع الكاش تماماً وحل الـ CORS
-    const url = 'fetch_flights.php?_=' + new Date().getTime(); 
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('حدث خطأ أثناء جلب البيانات من السيرفر');
-        }
+    const API_TOKEN = '99a7877a26a87b3d358e1eff089501c5'; 
+    const tripsContainer = document.getElementById('trips-container');
+    tripsContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">جاري جلب أحدث العروض الحية...</p>';
+    
+    let allFlights = [];
+    
+    // هنجيب 3 صفحات عشان نضمن الـ 12 عرض كاملين
+    for (let page = 1; page <= 3; page++) {
+        const cacheBuster = new Date().getTime() + page;
+        const targetUrl = `https://api.travelpayouts.com/v2/prices/latest?currency=usd&period_type=year&page=${page}&limit=4&token=${API_TOKEN}&_=${cacheBuster}`;
         
-        const data = await response.json();
-        console.log(data);
+        // استخدمنا هنا بروكسي Corsproxy.io الممتاز والسريع جداً مع فيرسيل
+        const url = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json(); // البروكسي ده بيرجع البيانات جاهزة علطول مش محتاجة JSON.parse
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    allFlights = allFlights.concat(data.data);
+                }
+            }
+        } catch (error) {
+            console.error(`Error fetching page ${page}:`, error);
+        }
+    }
 
-        const tripsContainer = document.getElementById('trips-container');
-        tripsContainer.innerHTML = '';
+    // تنظيف المكان لعرض الكروت
+    tripsContainer.innerHTML = '';
 
-        if (data.success && data.data && data.data.length > 0) {
-            
-            data.data.forEach((flight) => {
-                const affiliateLink = `https://www.aviasales.com/search?origin_iata=${flight.origin}&destination_iata=${flight.destination}&depart_date=${flight.depart_date}&with_request=true&marker=732094`; 
+    if (allFlights.length > 0) {
+        allFlights.forEach((flight) => {
+            // رابط التوجيه الصحيح والمضمون لـ Aviasales
+            const affiliateLink = `https://www.aviasales.com/search?origin_iata=${flight.origin}&destination_iata=${flight.destination}&depart_date=${flight.depart_date}&with_request=true&marker=732094`; 
 
-                const cityImage = `https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80`;
-                const dynamicRouteImage = `https://source.unsplash.com/featured/600x400/?travel,${flight.destination}`;
+            // روابط صور سياحية بديلة عالية الجودة
+            const cityImage = `https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80`;
+            const dynamicRouteImage = `https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=600&q=80`;
 
-                const tripCard = `
-                    <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col justify-between target-card">
-                        <div class="relative h-48 w-full bg-gray-200 overflow-hidden">
-                            <img src="${dynamicRouteImage}" 
-                                 onerror="this.src='${cityImage}'" 
-                                 class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
-                                 alt="رحلة إلى ${flight.destination}">
-                            <div class="absolute top-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded font-bold">
-                                ✈️ عروض حية
-                            </div>
-                        </div>
-                        <div class="p-6 flex-grow">
-                            <div class="bg-blue-50 text-blue-900 font-bold px-3 py-1 rounded-full inline-block text-sm mb-4">
-                                طيران من ${flight.origin}
-                            </div>
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">وجهة الرحلة: <span class="text-cyan-600">${flight.destination}</span></h3>
-                            <p class="text-gray-600 text-sm mb-1">📅 تاريخ المغادرة: ${flight.depart_date}</p>
-                            <p class="text-gray-600 text-sm mb-4">🔄 عدد التوقفات: ${flight.number_of_changes === 0 ? 'مباشر' : flight.number_of_changes}</p>
-                        </div>
-                        <div class="border-t p-6 bg-gray-50 flex items-center justify-between">
-                            <div>
-                                <span class="text-sm text-gray-400 block">تبدأ من</span>
-                                <span class="text-2xl font-black text-emerald-600">$${flight.value}</span>
-                            </div>
-                            <a href="${affiliateLink}" target="_blank" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2.5 px-5 rounded-lg transition-colors duration-200 text-sm">
-                                احجز الآن
-                            </a>
+            const tripCard = `
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col justify-between target-card">
+                    <div class="relative h-48 w-full bg-gray-200 overflow-hidden">
+                        <img src="${dynamicRouteImage}" 
+                             onerror="this.src='${cityImage}'" 
+                             class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
+                             alt="رحلة إلى ${flight.destination}">
+                        <div class="absolute top-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded font-bold">
+                            ✈️ عروض حية
                         </div>
                     </div>
-                `;
-                
-                tripsContainer.innerHTML += tripCard;
-            });
-            
-        } else {
-            tripsContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">لا توجد رحلات متاحة حالياً، يرجى المحاولة لاحقاً.</p>';
-        }
-
-    } catch (error) {
-        console.error('Error fetching flights:', error);
-        document.getElementById('trips-container').innerHTML = '<p class="text-center text-red-500 col-span-full">عذراً، تعذر تحميل الرحلات الآن.</p>';
+                    <div class="p-6 flex-grow">
+                        <div class="bg-blue-50 text-blue-900 font-bold px-3 py-1 rounded-full inline-block text-sm mb-4">
+                            طيران من ${flight.origin}
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">وجهة الرحلة: <span class="text-cyan-600">${flight.destination}</span></h3>
+                        <p class="text-gray-600 text-sm mb-1">📅 تاريخ المغادرة: ${flight.depart_date}</p>
+                        <p class="text-gray-600 text-sm mb-4">🔄 عدد التوقفات: ${flight.number_of_changes === 0 ? 'مباشر' : flight.number_of_changes}</p>
+                    </div>
+                    <div class="border-t p-6 bg-gray-50 flex items-center justify-between">
+                        <div>
+                            <span class="text-sm text-gray-400 block">تبدأ من</span>
+                            <span class="text-2xl font-black text-emerald-600">$${flight.value}</span>
+                        </div>
+                        <a href="${affiliateLink}" target="_blank" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2.5 px-5 rounded-lg transition-colors duration-200 text-sm">
+                            احجز الآن
+                        </a>
+                    </div>
+                </div>
+            `;
+            tripsContainer.innerHTML += tripCard;
+        });
+    } else {
+        tripsContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">لا توجد رحلات متاحة حالياً، يرجى المحاولة لاحقاً.</p>';
     }
 }
-
 document.addEventListener('DOMContentLoaded', loadPopularFlights);
   </script>
 </body>
