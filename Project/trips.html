@@ -62,14 +62,13 @@
         const cacheBuster = new Date().getTime() + page;
         const targetUrl = `https://api.travelpayouts.com/v2/prices/latest?currency=usd&period_type=year&page=${page}&limit=4&token=${API_TOKEN}&_=${cacheBuster}`;
         
-        // استخدمنا هنا بروكسي Corsproxy.io الممتاز والسريع جداً مع فيرسيل
+        // البروكسي السريع والمستقر مع فيرسيل
         const url = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
         
         try {
             const response = await fetch(url);
             if (response.ok) {
-                const data = await response.json(); // البروكسي ده بيرجع البيانات جاهزة علطول مش محتاجة JSON.parse
-                
+                const data = await response.json();
                 if (data.success && data.data && data.data.length > 0) {
                     allFlights = allFlights.concat(data.data);
                 }
@@ -79,12 +78,11 @@
         }
     }
 
-    // تنظيف المكان لعرض الكروت
     tripsContainer.innerHTML = '';
 
     if (allFlights.length > 0) {
         allFlights.forEach((flight) => {
-            // رابط التوجيه الصحيح والمضمون لـ Aviasales
+            // حل مشكلة الصورة الأولى: صياغة الرابط بشكل سليم تماماً ليفهمه السيرفر الخارجي مباشرة
             const affiliateLink = `https://www.aviasales.com/search?origin_iata=${flight.origin}&destination_iata=${flight.destination}&depart_date=${flight.depart_date}&with_request=true&marker=732094`; 
 
             // روابط صور سياحية بديلة عالية الجودة
