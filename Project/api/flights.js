@@ -1,7 +1,8 @@
-export default async function handler(req, res) {
-    // السماح بمرور البيانات لمنع الـ CORS تماماً
+module.exports = async (req, res) => {
+    // إعداد الهيدرز لمنع الـ CORS تماماً
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
+    res.setHeader('Content-Type', 'application/json');
     
     const { page } = req.query;
     const API_TOKEN = '99a7877a26a87b3d358e1eff089501c5';
@@ -12,7 +13,7 @@ export default async function handler(req, res) {
     try {
         const response = await fetch(targetUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
         });
         
@@ -21,4 +22,4 @@ export default async function handler(req, res) {
     } catch (error) {
         return res.status(500).json({ success: false, error: error.message });
     }
-}
+};
